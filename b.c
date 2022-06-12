@@ -1,48 +1,69 @@
-
-#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <semaphore.h>
+#include <errno.h>
 #include <pthread.h>
-int count=5;
-sem_t ml;
-sem_t m2;
-pthread_mutex_t mutex;
-void *thread1(void *arg){
-int i=0;
-for(i=0 ; i<10;i++){
-sem_wait(&m1);
-count+=5;
-sem_post(&m2);}
+#include <semaphore.h>
+#define N 128
+int data[N];
+int datap=0 ;
+sem_t rmutex,wmutex;
+int readCnt=0;
+//读者
+void *reader(void* id) {
+sem_wait(&rmutex);
+if(readCnt==0)
+sem_wait(&wmutex);
+++readCnt;
+printf("======%S======\n",(char*)id);
+int i;
+for(i=o; i<datap; ++i)
+printf("%c",data[i]);
+puts("");
+sem_post(&rmutex) ;
+//读
+sem_wait(&rmutex);
+--readCnt;
+if(readCnt==0)
+sem_post(&wmutex);
+sem_post(&rmutex );
+return NULL;
 }
-void *thread2 (void *arg){
-int i=0;
-for( i=0 ; i<10;i++){
-sem_wait(&m2);
-printf( "count=%d\n", count);
-sem_post(&m1);
-}
+
+// 写者
+void *writer(void *id) {
+sem_wait(&wmutex);
+// 写
+if(datap==N)
+  datap=0;
+printf( "=====%s======n",(char*)id);
+for(;datap<N;++datap)
+data[datap++]=rand()%26+'a';
+sem_post(&wmutex);
+return NULL;
 }
 int main()
 {
-pthread_t thr1;
-pthread_t thr2 ;
-int ret;
-ret=sem_init(&m1,0,1);
-if ( ret!=0)
-{
-printf ( "sem_init error ! " );
-exit(0) ;
+sem_init(&rmutex,0,1);
+sem_init(&wmutex,0,1);
+// 一个写者，3个读者
+pthread_t w1,r1,r2,r3;
+while(1){
+if(pthread_create(&w1,NULL,writer,(void*) "writer"))
+perror("pthread_create");
+if(pthread_create(&r1,NULL,reader,(void*) "reader1"))
+perror("pthread_create");
+if(pthread_create(&r2,NULL,reader,(void*) "reader2"))
+perror("pthread_create");
+if(pthread_create(&r3,NULL,reader,(void*) "reader3" ))
+perror("pthread_create");
+if(pthread_join(r1,NULL))
+perror("pthread_join");
+if(pthread_join(r2,NULL))
+perror("pthread_join");
+if(pthread_join(r3, NULL))
+perror("pthread_join");
+if(pthread_join(w1,NULL))
+perror("pthread_join");
 }
-ret=sem_init(&m2,0,0 ) ;
-if(ret!=0)
-{
-printf ( "sem_init error! " );
-exit(0 ) ;
+return 0;
 }
-pthread_create(&thr1,NULL,thread1,NULL);
-pthread_create(&thr2,NULL,thread2,NULL);
-pthread_join(thr1,NULL);
-pthread_join(thr2,NULL);
-exit(0);
-}                  
