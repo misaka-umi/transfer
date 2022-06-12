@@ -16,3 +16,8 @@ printf ( "add continue!\n" );sem_wait(mutex1) ;
 sem_post(mutex2);}
 printf ( "add finish!n" ) ;exit(0);
 }
+for(i=0;i<10 ; i++)
+printf ( "printf_continue! \n" );sem_wait(mutex2);
+printf ( "count:%din" ,*count);sem_post(mutex1);
+sem_destroy ( mutex1);sem_destroy ( mutex2);
+munmap(mutex1,sizeof(sem_t) ) ;munmap(mutex2,sizeof(sem_t) );munmap( count,sizeof(int) );printf( "finish all!\n" );return 0;
